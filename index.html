@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title id="pageTitle">دعوة زفاف</title>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Reem+Kufi:wght@400;700&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --gold: #ffd700;
+    --gold-light: #ffec8b;
+    --dark: #0a0a1a;
+    --dark-card: rgba(255,255,255,0.05);
+    --border-gold: rgba(255,215,0,0.15);
+  }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--dark);
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: #fff;
+  }
+
+  /* Floating particles */
+  .particles {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .particle {
+    position: absolute; width: 6px; height: 6px;
+    background: rgba(255,215,0,0.6); border-radius: 50%;
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+  }
+
+  /* Admin toggle - TOP LEFT, very subtle */
+  .admin-toggle {
+    position: fixed; top: 12px; left: 12px;
+    z-index: 100; width: 32px; height: 32px;
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,215,0,0.08);
+    border-radius: 8px;
+    color: rgba(255,215,0,0.25);
+    font-size: 0.85rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s; opacity: 0.25;
+  }
+  .admin-toggle:hover {
+    opacity: 0.6;
+    background: rgba(255,215,0,0.08);
+    border-color: rgba(255,215,0,0.2);
+    color: rgba(255,215,0,0.5);
+  }
+
+  /* Main container */
+  .main-container {
+    position: relative; z-index: 1;
+    max-width: 480px; margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+
+  /* Photo card */
+  .photo-card {
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(255,215,0,0.15);
+    margin-bottom: 24px;
+    animation: fadeInDown 1.2s ease-out;
+  }
+  .photo-card img {
+    width: 100%; display: block;
+    aspect-ratio: 3/4; object-fit: cover;
+  }
+  .photo-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    padding: 60px 20px 20px;
+  }
+  .photo-overlay h2 {
+    font-family: 'Reem Kufi', sans-serif;
+    font-size: 2rem; color: var(--gold);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  }
+
+  /* Info section */
+  .info-section {
+    background: var(--dark-card);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 24px 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-gold);
+    animation: fadeInUp 1s ease-out 0.3s both;
+  }
+  .names {
+    font-family: 'Reem Kufi', sans-serif;
+    font-size: 1.8rem; color: var(--gold);
+    text-align: center; margin-bottom: 16px;
+  }
+  .names .heart {
+    color: #ff6b6b; font-size: 1.4rem;
+    display: inline-block; animation: heartbeat 1.5s ease-in-out infinite;
+  }
+  @keyframes heartbeat {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+  .date-location {
+    text-align: center; color: #ccc;
+    font-size: 1.05rem; line-height: 1.8;
+  }
+  .date-location .icon {
+    color: var(--gold); margin-left: 6px;
+  }
+  .divider {
+    width: 60px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 16px auto;
+  }
+  .message {
+    text-align: center; font-size: 1rem;
+    color: #ddd; line-height: 2;
+    font-style: italic;
+  }
+
+  /* Location link */
+  .location-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--gold); text-decoration: none;
+    font-size: 0.95rem; margin-top: 8px;
+    padding: 8px 16px; border-radius: 20px;
+    background: rgba(255,215,0,0.1);
+    border: 1px solid rgba(255,215,0,0.2);
+    transition: all 0.3s;
+  }
+  .location-link:hover {
+    background: rgba(255,215,0,0.2);
+    transform: translateY(-2px);
+  }
+
+  /* Singers section */
+  .singers-section {
+    background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,140,0,0.05));
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    animation: fadeInUp 1s ease-out 0.5s both;
+  }
+  .singers-section .singers-label {
+    font-family: 'Reem Kufi', sans-serif;
+    font-size: 1.1rem; color: var(--gold);
+    margin-bottom: 14px;
+  }
+  .singers-section .singers-label .mic {
+    font-size: 1.3rem; margin-left: 6px;
+  }
+  .singer-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,215,0,0.15);
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin: 6px auto;
+    max-width: 280px;
+    font-size: 1rem; color: #eee;
+  }
+  .singer-item .song {
+    font-size: 0.8rem; color: #aaa;
+    margin-top: 2px;
+  }
+
+  /* Music player */
+  .music-section {
+    background: var(--dark-card);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid var(--border-gold);
+    animation: fadeInUp 1s ease-out 0.6s both;
+  }
+  .music-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .music-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), #ff8c00);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+  }
+  .music-icon.playing { animation: spin 3s linear infinite; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  .music-title { font-size: 1rem; color: var(--gold); }
+  .music-sub { font-size: 0.8rem; color: #888; }
+
+  .play-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--gold), #ff8c00);
+    border: none; border-radius: 14px;
+    color: var(--dark); font-family: 'Cairo', sans-serif;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .play-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,215,0,0.3); }
+  .play-btn:active { transform: translateY(0); }
+
+  /* Countdown */
+  .countdown {
+    display: flex; justify-content: center; gap: 12px;
+    margin-top: 16px;
+  }
+  .countdown-item {
+    background: rgba(255,215,0,0.1);
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 12px; padding: 10px 14px;
+    text-align: center; min-width: 60px;
+  }
+  .countdown-item .num {
+    font-family: 'Reem Kufi'; font-size: 1.4rem;
+    color: var(--gold); display: block;
+  }
+  .countdown-item .lbl {
+    font-size: 0.7rem; color: #888;
+  }
+
+  /* Password overlay */
+  .password-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,10,26,0.98); backdrop-filter: blur(20px);
+    z-index: 300; display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .password-overlay.active { display: flex; }
+  .password-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 20px;
+    padding: 32px 28px;
+    text-align: center;
+    max-width: 340px; width: 100%;
+  }
+  .password-box .lock-icon {
+    font-size: 3rem; margin-bottom: 12px;
+  }
+  .password-box h3 {
+    font-family: 'Reem Kufi'; color: var(--gold);
+    font-size: 1.3rem; margin-bottom: 8px;
+  }
+  .password-box p {
+    color: #888; font-size: 0.85rem; margin-bottom: 20px;
+  }
+  .password-box input {
+    width: 100%; padding: 14px;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,215,0,0.2);
+    border-radius: 12px; color: #fff;
+    font-family: 'Cairo', sans-serif; font-size: 1.1rem;
+    text-align: center; letter-spacing: 8px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .password-box input:focus {
+    border-color: var(--gold);
+  }
+  .password-box button {
+    margin-top: 16px; width: 100%; padding: 12px;
+    background: linear-gradient(135deg, var(--gold), #ff8c00);
+    border: none; border-radius: 12px;
+    color: var(--dark); font-family: 'Cairo', sans-serif;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+  .password-box .pw-error {
+    color: #f87171; font-size: 0.85rem;
+    margin-top: 10px; min-height: 20px;
+  }
+
+  /* Admin panel */
+  .admin-panel {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,10,26,0.97); backdrop-filter: blur(20px);
+    z-index: 200; display: none; flex-direction: column;
+    padding: 20px; overflow-y: auto;
+  }
+  .admin-panel.active { display: flex; }
+  .admin-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,215,0,0.2);
+    position: sticky; top: 0; background: rgba(10,10,26,0.95);
+    z-index: 10;
+  }
+  .admin-header h3 { color: var(--gold); font-family: 'Reem Kufi'; font-size: 1.3rem; }
+  .close-admin {
+    background: none; border: none; color: #fff;
+    font-size: 1.5rem; cursor: pointer; padding: 8px;
+  }
+
+  .admin-section {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,215,0,0.1);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .admin-section-title {
+    color: var(--gold); font-size: 0.9rem;
+    margin-bottom: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .admin-form label {
+    display: block; color: #aaa; font-size: 0.82rem;
+    margin-bottom: 4px; margin-top: 10px;
+  }
+  .admin-form input, .admin-form textarea {
+    width: 100%; padding: 10px 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,215,0,0.15);
+    border-radius: 10px; color: #fff;
+    font-family: 'Cairo', sans-serif; font-size: 0.95rem;
+    outline: none; transition: border-color 0.2s;
+  }
+  .admin-form input:focus, .admin-form textarea:focus {
+    border-color: var(--gold);
+  }
+  .admin-form textarea { min-height: 60px; resize: vertical; }
+
+  .file-input-wrapper {
+    position: relative; margin-top: 8px;
+  }
+  .file-input-wrapper input[type="file"] {
+    position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer;
+  }
+  .file-input-btn {
+    display: block; width: 100%; padding: 12px;
+    background: rgba(255,215,0,0.08);
+    border: 2px dashed rgba(255,215,0,0.3);
+    border-radius: 12px; color: var(--gold);
+    text-align: center; font-size: 0.9rem;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .file-input-btn:hover {
+    background: rgba(255,215,0,0.15);
+    border-color: rgba(255,215,0,0.5);
+  }
+  .file-input-btn.has-file {
+    border-style: solid;
+    background: rgba(74,222,128,0.1);
+    border-color: rgba(74,222,128,0.4);
+    color: #4ade80;
+  }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px;
+  }
+  .toggle-switch {
+    position: relative; width: 48px; height: 26px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 13px; cursor: pointer;
+    transition: background 0.3s;
+  }
+  .toggle-switch.active {
+    background: linear-gradient(135deg, var(--gold), #ff8c00);
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; top: 3px; right: 3px;
+    transition: transform 0.3s;
+  }
+  .toggle-switch.active::after {
+    transform: translateX(-22px);
+  }
+
+  .save-btn {
+    margin-top: 20px; width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--gold), #ff8c00);
+    border: none; border-radius: 14px;
+    color: var(--dark); font-family: 'Cairo', sans-serif;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer;
+  }
+  .status-msg {
+    text-align: center; margin-top: 12px;
+    font-size: 0.9rem; min-height: 24px;
+  }
+  .status-msg.success { color: #4ade80; }
+  .status-msg.error { color: #f87171; }
+  .status-msg.info { color: #60a5fa; }
+
+  .preview-img {
+    width: 100%; border-radius: 10px;
+    margin-top: 8px; max-height: 150px; object-fit: cover;
+    border: 1px solid rgba(255,215,0,0.2);
+  }
+
+  /* Singer fields in admin */
+  .singer-field-pair {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+  .singer-field-pair input {
+    flex: 1;
+  }
+  .singer-field-pair input:first-child {
+    flex: 1.5;
+  }
+  .singer-num {
+    color: var(--gold); font-size: 0.8rem;
+    margin-top: 10px; font-weight: 600;
+  }
+
+  /* Animations */
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Hidden */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- Admin Toggle - TOP LEFT, very subtle -->
+<button class="admin-toggle" onclick="openPassword()" title="">⚙</button>
+
+<!-- Password Overlay -->
+<div class="password-overlay" id="passwordOverlay">
+  <div class="password-box">
+    <div class="lock-icon">🔒</div>
+    <h3>لوحة التحكم</h3>
+    <p>أدخل كلمة المرور للدخول</p>
+    <input type="password" id="pwInput" placeholder="****" maxlength="10" onkeydown="if(event.key==='Enter')checkPassword()">
+    <button onclick="checkPassword()">دخول</button>
+    <div class="pw-error" id="pwError"></div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main-container">
+
+  <!-- Photo -->
+  <div class="photo-card" id="photoCard">
+    <img id="weddingPhoto" src="" alt="Wedding Photo">
+    <div class="photo-overlay">
+      <h2 id="photoTitle">دعوة زفاف</h2>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-section">
+    <div class="names" id="coupleNames"></div>
+    <div class="divider"></div>
+    <div class="date-location" id="dateLocation">
+      <div id="dateRow"><span class="icon">📅</span> <span id="weddingDate"></span></div>
+      <div id="timeRow"><span class="icon">🕐</span> <span id="weddingTime"></span></div>
+      <div id="locRow"><span class="icon">📍</span> <span id="weddingLocation"></span></div>
+      <div id="locLinkRow" style="margin-top:10px;"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="message" id="weddingMessage"></div>
+    <div class="countdown" id="countdown">
+      <div class="countdown-item"><span class="num" id="cdDays">--</span><span class="lbl">يوم</span></div>
+      <div class="countdown-item"><span class="num" id="cdHours">--</span><span class="lbl">ساعة</span></div>
+      <div class="countdown-item"><span class="num" id="cdMinutes">--</span><span class="lbl">دقيقة</span></div>
+      <div class="countdown-item"><span class="num" id="cdSeconds">--</span><span class="lbl">ثانية</span></div>
+    </div>
+  </div>
+
+  <!-- Singers -->
+  <div class="singers-section hidden" id="singersSection">
+    <div class="singers-label"><span class="mic">🎤</span> <span id="singersLabelText">بمشاركة الفنانين</span></div>
+    <div id="singersList"></div>
+  </div>
+
+  <!-- Music -->
+  <div class="music-section" id="musicSection">
+    <div class="music-header">
+      <div class="music-icon" id="musicIcon">🎵</div>
+      <div>
+        <div class="music-title" id="musicTitle">أغنية الفرح</div>
+        <div class="music-sub" id="musicSub">جاري التحميل...</div>
+      </div>
+    </div>
+    <button class="play-btn" id="playBtn" onclick="toggleMusic()">
+      ▶ تشغيل الأغنية
+    </button>
+  </div>
+
+</div>
+
+<!-- Audio (hidden) -->
+<audio id="weddingAudio" loop></audio>
+
+<!-- Admin Panel -->
+<div class="admin-panel" id="adminPanel">
+  <div class="admin-header">
+    <h3>⚙️ لوحة التحكم</h3>
+    <button class="close-admin" onclick="closeAdmin()">✕</button>
+  </div>
+
+  <!-- Section: Page -->
+  <div class="admin-section">
+    <div class="admin-section-title">📄 عنوان الصفحة</div>
+    <label>عنوان التبويب (Tab Title)</label>
+    <input type="text" id="admPageTitle" placeholder="دعوة زفاف">
+  </div>
+
+  <!-- Section: Photo -->
+  <div class="admin-section">
+    <div class="admin-section-title">🖼️ صورة الفرح</div>
+    <label>رفع صورة من الجهاز</label>
+    <div class="file-input-wrapper">
+      <input type="file" id="photoFile" accept="image/*" onchange="handlePhotoFile(this)">
+      <div class="file-input-btn" id="photoFileBtn">📁 اضغط لاختيار صورة</div>
+    </div>
+    <img class="preview-img hidden" id="photoPreview">
+    <label style="margin-top:10px;">أو رابط صورة (URL)</label>
+    <input type="text" id="admPhotoUrl" placeholder="https://...">
+    <label>عنوان فوق الصورة</label>
+    <input type="text" id="admPhotoTitle" placeholder="دعوة زفاف">
+  </div>
+
+  <!-- Section: Name (Groom only) -->
+  <div class="admin-section">
+    <div class="admin-section-title">👤 اسم العريس</div>
+    <label>اسم العريس</label>
+    <input type="text" id="admGroom" placeholder="محمد">
+    <label>نص القلب (يمكن تغييره أو تركه ♥)</label>
+    <input type="text" id="admHeart" placeholder="♥">
+  </div>
+
+  <!-- Section: Date & Location -->
+  <div class="admin-section">
+    <div class="admin-section-title">📅 التاريخ والموقع</div>
+    <label>التاريخ (YYYY-MM-DD)</label>
+    <input type="text" id="admDate" placeholder="2026-07-15">
+    <label>الوقت</label>
+    <input type="text" id="admTime" placeholder="8:00 مساءً">
+    <label>الموقع (النص)</label>
+    <input type="text" id="admLocation" placeholder="قاعة النورس - القاهرة">
+    <label>رابط الموقع (Google Maps)</label>
+    <input type="text" id="admLocationUrl" placeholder="https://maps.google.com/...">
+  </div>
+
+  <!-- Section: Message -->
+  <div class="admin-section">
+    <div class="admin-section-title">💬 رسالة الدعوة</div>
+    <label>نص الرسالة (سطر جديد = Enter)</label>
+    <textarea id="admMessage" placeholder="اكتب رسالة جميلة..."></textarea>
+  </div>
+
+  <!-- Section: Singers (5 fields) -->
+  <div class="admin-section">
+    <div class="admin-section-title">🎤 المطربين (5 خانات)</div>
+    <div class="toggle-row">
+      <label style="margin:0;">إظهار قسم المطربين</label>
+      <div class="toggle-switch" id="singersToggle" onclick="toggleSingers()"></div>
+    </div>
+    <div id="singersFields">
+      <label>نص التعريف (مثال: بمشاركة الفنانين)</label>
+      <input type="text" id="admSingersLabel" placeholder="بمشاركة الفنانين">
+
+      <div class="singer-num">المطرب 1</div>
+      <div class="singer-field-pair">
+        <input type="text" id="admSinger1Name" placeholder="اسم المطرب">
+        <input type="text" id="admSinger1Song" placeholder="الأغنية">
+      </div>
+
+      <div class="singer-num">المطرب 2</div>
+      <div class="singer-field-pair">
+        <input type="text" id="admSinger2Name" placeholder="اسم المطرب">
+        <input type="text" id="admSinger2Song" placeholder="الأغنية">
+      </div>
+
+      <div class="singer-num">المطرب 3</div>
+      <div class="singer-field-pair">
+        <input type="text" id="admSinger3Name" placeholder="اسم المطرب">
+        <input type="text" id="admSinger3Song" placeholder="الأغنية">
+      </div>
+
+      <div class="singer-num">المطرب 4</div>
+      <div class="singer-field-pair">
+        <input type="text" id="admSinger4Name" placeholder="اسم المطرب">
+        <input type="text" id="admSinger4Song" placeholder="الأغنية">
+      </div>
+
+      <div class="singer-num">المطرب 5</div>
+      <div class="singer-field-pair">
+        <input type="text" id="admSinger5Name" placeholder="اسم المطرب">
+        <input type="text" id="admSinger5Song" placeholder="الأغنية">
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Music -->
+  <div class="admin-section">
+    <div class="admin-section-title">🎵 الأغنية</div>
+    <label>رفع ملف صوتي من الجهاز (MP3)</label>
+    <div class="file-input-wrapper">
+      <input type="file" id="musicFile" accept="audio/*" onchange="handleMusicFile(this)">
+      <div class="file-input-btn" id="musicFileBtn">📁 اضغط لاختيار ملف صوتي</div>
+    </div>
+    <label style="margin-top:10px;">أو رابط الأغنية (URL)</label>
+    <input type="text" id="admMusicUrl" placeholder="https://... .mp3">
+    <label>عنوان الأغنية</label>
+    <input type="text" id="admMusicName" placeholder="أغنية الفرح">
+  </div>
+
+  <button class="save-btn" onclick="saveData()">💾 حفظ كل التغييرات</button>
+  <div class="status-msg" id="statusMsg"></div>
+  <div style="height:40px;"></div>
+</div>
+
+<script>
+// ===== Firebase Config =====
+const firebaseConfig = {
+  apiKey: "AIzaSyD5Qi-go3Uo-8fIgEROgYQ1tpFI02VIzTo",
+  authDomain: "amkkk-106dc.firebaseapp.com",
+  databaseURL: "https://amkkk-106dc-default-rtdb.firebaseio.com",
+  projectId: "amkkk-106dc",
+  storageBucket: "amkkk-106dc.firebasestorage.app",
+  messagingSenderId: "1081220907741",
+  appId: "1:1081220907741:web:6b13fb8c331e08b6f51134",
+  measurementId: "G-M6Z93T5M8Q"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const dataRef = db.ref('wedding');
+
+// ===== Password =====
+const ADMIN_PASSWORD = '1997';
+
+// ===== State =====
+let photoBase64 = '';
+let musicBase64 = '';
+let showSingers = false;
+let isPlaying = false;
+let autoPlayAttempted = false;
+
+// ===== Default Data =====
+const defaultData = {
+  pageTitle: "دعوة زفاف",
+  photo: "https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=800&fit=crop",
+  photoTitle: "دعوة زفاف",
+  groom: "محمد",
+  heart: "♥",
+  date: "2026-07-15",
+  time: "8:00 مساءً",
+  location: "قاعة النورس - القاهرة",
+  locationUrl: "",
+  message: "نرجو منكم مشاركتنا فرحتنا في يوم زفافنا،\nونسأل الله أن يبارك لنا ويجمع بيننا على خير",
+  music: "",
+  musicName: "أغنية الفرح",
+  showSingers: false,
+  singersLabel: "بمشاركة الفنانين",
+  singers: [
+    {name:"", song:""},
+    {name:"", song:""},
+    {name:"", song:""},
+    {name:"", song:""},
+    {name:"", song:""}
+  ]
+};
+
+// ===== Password Handler =====
+function openPassword() {
+  document.getElementById('passwordOverlay').classList.add('active');
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwError').textContent = '';
+  setTimeout(() => document.getElementById('pwInput').focus(), 100);
+}
+
+function closePassword() {
+  document.getElementById('passwordOverlay').classList.remove('active');
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwError').textContent = '';
+}
+
+function checkPassword() {
+  const input = document.getElementById('pwInput').value.trim();
+  if (input === ADMIN_PASSWORD) {
+    closePassword();
+    openAdminPanel();
+  } else {
+    document.getElementById('pwError').textContent = '❌ كلمة المرور غير صحيحة';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+// ===== File Handlers =====
+function handlePhotoFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    photoBase64 = e.target.result;
+    document.getElementById('photoPreview').src = photoBase64;
+    document.getElementById('photoPreview').classList.remove('hidden');
+    document.getElementById('photoFileBtn').textContent = '✅ تم اختيار الصورة: ' + file.name;
+    document.getElementById('photoFileBtn').classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleMusicFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    musicBase64 = e.target.result;
+    document.getElementById('musicFileBtn').textContent = '✅ تم اختيار الملف: ' + file.name;
+    document.getElementById('musicFileBtn').classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== Toggles =====
+function toggleSingers() {
+  showSingers = !showSingers;
+  document.getElementById('singersToggle').classList.toggle('active', showSingers);
+  document.getElementById('singersFields').style.display = showSingers ? 'block' : 'none';
+}
+
+// ===== Load Data =====
+function loadData() {
+  dataRef.once('value').then(snapshot => {
+    let data = snapshot.val();
+    if (!data) {
+      data = defaultData;
+      dataRef.set(data);
+    }
+    applyData(data);
+  }).catch(err => {
+    console.log('Firebase error, using defaults:', err);
+    applyData(defaultData);
+  });
+}
+
+function applyData(data) {
+  // Page title
+  document.title = data.pageTitle || defaultData.pageTitle;
+  document.getElementById('pageTitle').textContent = data.pageTitle || defaultData.pageTitle;
+
+  // Photo
+  const photoSrc = data.photo || defaultData.photo;
+  document.getElementById('weddingPhoto').src = photoSrc;
+  document.getElementById('photoTitle').textContent = data.photoTitle || defaultData.photoTitle;
+
+  // Name (Groom only)
+  const groom = data.groom || defaultData.groom;
+  const heart = data.heart || defaultData.heart;
+  document.getElementById('coupleNames').innerHTML = groom + ' <span class="heart">' + heart + '</span>';
+
+  // Date & Location
+  document.getElementById('weddingDate').textContent = formatDate(data.date || defaultData.date);
+  document.getElementById('weddingTime').textContent = data.time || defaultData.time;
+  document.getElementById('weddingLocation').textContent = data.location || defaultData.location;
+
+  // Location link
+  const locUrl = data.locationUrl || '';
+  const locLinkRow = document.getElementById('locLinkRow');
+  if (locUrl) {
+    locLinkRow.innerHTML = '<a href="' + locUrl + '" target="_blank" class="location-link">📍 افتح الموقع على الخريطة</a>';
+    locLinkRow.classList.remove('hidden');
+  } else {
+    locLinkRow.innerHTML = '';
+    locLinkRow.classList.add('hidden');
+  }
+
+  // Message
+  const msg = data.message || defaultData.message;
+  document.getElementById('weddingMessage').innerHTML = msg.replace(/\n/g, '<br>');
+
+  // Singers
+  const showSingersData = data.showSingers || false;
+  const singersSection = document.getElementById('singersSection');
+  const singersList = document.getElementById('singersList');
+  const singers = data.singers || defaultData.singers;
+
+  if (showSingersData) {
+    // Filter only singers with names
+    const activeSingers = singers.filter(s => s.name && s.name.trim() !== '');
+    if (activeSingers.length > 0) {
+      document.getElementById('singersLabelText').textContent = data.singersLabel || 'بمشاركة الفنانين';
+      singersList.innerHTML = activeSingers.map(s => {
+        const songHtml = s.song ? '<div class="song">🎵 ' + s.song + '</div>' : '';
+        return '<div class="singer-item">' + s.name + songHtml + '</div>';
+      }).join('');
+      singersSection.classList.remove('hidden');
+    } else {
+      singersSection.classList.add('hidden');
+    }
+  } else {
+    singersSection.classList.add('hidden');
+  }
+
+  // Music - AUTOPLAY on page load
+  const audio = document.getElementById('weddingAudio');
+  const musicSrc = data.music || '';
+  if (musicSrc) {
+    audio.src = musicSrc;
+    document.getElementById('musicSub').textContent = data.musicName || 'جاري التشغيل...';
+    document.getElementById('musicTitle').textContent = data.musicName || 'أغنية الفرح';
+    document.getElementById('playBtn').disabled = false;
+    document.getElementById('playBtn').style.opacity = '1';
+
+    // Force autoplay on page load
+    if (!autoPlayAttempted) {
+      autoPlayAttempted = true;
+      attemptAutoplay(audio);
+    }
+  } else {
+    document.getElementById('musicSub').textContent = 'لا يوجد أغنية محفوظة';
+    document.getElementById('playBtn').innerHTML = '▶ لا يوجد أغنية';
+    document.getElementById('playBtn').disabled = true;
+    document.getElementById('playBtn').style.opacity = '0.5';
+  }
+
+  startCountdown(data.date || defaultData.date);
+}
+
+function attemptAutoplay(audio) {
+  // Try multiple times with delays
+  const tryPlay = () => {
+    audio.play().then(() => {
+      isPlaying = true;
+      document.getElementById('playBtn').innerHTML = '⏸ إيقاف مؤقت';
+      document.getElementById('musicIcon').classList.add('playing');
+      document.getElementById('musicSub').textContent = document.getElementById('musicTitle').textContent;
+    }).catch(e => {
+      // Browser blocked autoplay - show play button
+      document.getElementById('musicSub').textContent = 'اضغط تشغيل للاستماع';
+      document.getElementById('playBtn').innerHTML = '▶ تشغيل الأغنية';
+    });
+  };
+
+  // Try immediately
+  tryPlay();
+
+  // Try again after user interaction (click anywhere)
+  const unlockAudio = () => {
+    if (!isPlaying && audio.src && audio.src !== window.location.href) {
+      audio.play().then(() => {
+        isPlaying = true;
+        document.getElementById('playBtn').innerHTML = '⏸ إيقاف مؤقت';
+        document.getElementById('musicIcon').classList.add('playing');
+        document.getElementById('musicSub').textContent = document.getElementById('musicTitle').textContent;
+      }).catch(() => {});
+    }
+    document.removeEventListener('click', unlockAudio);
+    document.removeEventListener('touchstart', unlockAudio);
+  };
+  document.addEventListener('click', unlockAudio);
+  document.addEventListener('touchstart', unlockAudio);
+}
+
+function fillAdmin(data) {
+  document.getElementById('admPageTitle').value = data.pageTitle || '';
+  document.getElementById('admPhotoUrl').value = (data.photo && !data.photo.startsWith('data:')) ? data.photo : '';
+  document.getElementById('admPhotoTitle').value = data.photoTitle || '';
+  document.getElementById('admGroom').value = data.groom || '';
+  document.getElementById('admHeart').value = data.heart || '';
+  document.getElementById('admDate').value = data.date || '';
+  document.getElementById('admTime').value = data.time || '';
+  document.getElementById('admLocation').value = data.location || '';
+  document.getElementById('admLocationUrl').value = data.locationUrl || '';
+  document.getElementById('admMessage').value = (data.message || '').replace(/\n/g, '\n');
+  document.getElementById('admMusicUrl').value = (data.music && !data.music.startsWith('data:')) ? data.music : '';
+  document.getElementById('admMusicName').value = data.musicName || '';
+
+  // Singers
+  showSingers = data.showSingers || false;
+  document.getElementById('singersToggle').classList.toggle('active', showSingers);
+  document.getElementById('singersFields').style.display = showSingers ? 'block' : 'none';
+  document.getElementById('admSingersLabel').value = data.singersLabel || '';
+
+  const singers = data.singers || defaultData.singers;
+  for (let i = 0; i < 5; i++) {
+    const s = singers[i] || {name:'', song:''};
+    document.getElementById('admSinger' + (i+1) + 'Name').value = s.name || '';
+    document.getElementById('admSinger' + (i+1) + 'Song').value = s.song || '';
+  }
+
+  // Reset file inputs
+  photoBase64 = '';
+  musicBase64 = '';
+  document.getElementById('photoFileBtn').textContent = '📁 اضغط لاختيار صورة';
+  document.getElementById('photoFileBtn').classList.remove('has-file');
+  document.getElementById('musicFileBtn').textContent = '📁 اضغط لاختيار ملف صوتي';
+  document.getElementById('musicFileBtn').classList.remove('has-file');
+
+  // Preview photo if base64
+  if (data.photo && data.photo.startsWith('data:')) {
+    document.getElementById('photoPreview').src = data.photo;
+    document.getElementById('photoPreview').classList.remove('hidden');
+  }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  const days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  return days[d.getDay()] + '، ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+// ===== Countdown =====
+let countdownInterval;
+function startCountdown(dateStr) {
+  if (countdownInterval) clearInterval(countdownInterval);
+  const target = new Date(dateStr + 'T00:00:00').getTime();
+
+  function update() {
+    const now = new Date().getTime();
+    const diff = target - now;
+    if (diff <= 0) {
+      document.getElementById('cdDays').textContent = '0';
+      document.getElementById('cdHours').textContent = '0';
+      document.getElementById('cdMinutes').textContent = '0';
+      document.getElementById('cdSeconds').textContent = '0';
+      return;
+    }
+    const days = Math.floor(diff / (1000*60*60*24));
+    const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+    const mins = Math.floor((diff % (1000*60*60)) / (1000*60));
+    const secs = Math.floor((diff % (1000*60)) / 1000);
+    document.getElementById('cdDays').textContent = days;
+    document.getElementById('cdHours').textContent = hours;
+    document.getElementById('cdMinutes').textContent = mins;
+    document.getElementById('cdSeconds').textContent = secs;
+  }
+  update();
+  countdownInterval = setInterval(update, 1000);
+}
+
+// ===== Music =====
+function toggleMusic() {
+  const audio = document.getElementById('weddingAudio');
+  const btn = document.getElementById('playBtn');
+  const icon = document.getElementById('musicIcon');
+
+  if (!audio.src || audio.src === window.location.href) {
+    showStatus('لا يوجد أغنية محفوظة!', 'error');
+    return;
+  }
+  if (isPlaying) {
+    audio.pause();
+    btn.innerHTML = '▶ تشغيل الأغنية';
+    icon.classList.remove('playing');
+    isPlaying = false;
+  } else {
+    audio.play().then(() => {
+      btn.innerHTML = '⏸ إيقاف مؤقت';
+      icon.classList.add('playing');
+      isPlaying = true;
+    }).catch(e => {
+      showStatus('تعذر تشغيل الأغنية', 'error');
+    });
+  }
+}
+
+// ===== Admin =====
+function openAdminPanel() {
+  dataRef.once('value').then(snapshot => {
+    let data = snapshot.val();
+    if (!data) data = defaultData;
+    fillAdmin(data);
+    document.getElementById('adminPanel').classList.add('active');
+  });
+}
+
+function closeAdmin() {
+  document.getElementById('adminPanel').classList.remove('active');
+}
+
+function saveData() {
+  showStatus('⏳ جاري الحفظ...', 'info');
+
+  const photoUrl = document.getElementById('admPhotoUrl').value.trim();
+  const photoToSave = photoBase64 || photoUrl || defaultData.photo;
+
+  const musicUrl = document.getElementById('admMusicUrl').value.trim();
+  const musicToSave = musicBase64 || musicUrl || '';
+
+  const singers = [];
+  for (let i = 1; i <= 5; i++) {
+    singers.push({
+      name: document.getElementById('admSinger' + i + 'Name').value.trim(),
+      song: document.getElementById('admSinger' + i + 'Song').value.trim()
+    });
+  }
+
+  const data = {
+    pageTitle: document.getElementById('admPageTitle').value.trim() || defaultData.pageTitle,
+    photo: photoToSave,
+    photoTitle: document.getElementById('admPhotoTitle').value.trim() || defaultData.photoTitle,
+    groom: document.getElementById('admGroom').value.trim() || defaultData.groom,
+    heart: document.getElementById('admHeart').value.trim() || defaultData.heart,
+    date: document.getElementById('admDate').value.trim() || defaultData.date,
+    time: document.getElementById('admTime').value.trim() || defaultData.time,
+    location: document.getElementById('admLocation').value.trim() || defaultData.location,
+    locationUrl: document.getElementById('admLocationUrl').value.trim(),
+    message: document.getElementById('admMessage').value.trim() || defaultData.message,
+    music: musicToSave,
+    musicName: document.getElementById('admMusicName').value.trim() || defaultData.musicName,
+    showSingers: showSingers,
+    singersLabel: document.getElementById('admSingersLabel').value.trim(),
+    singers: singers
+  };
+
+  dataRef.set(data).then(() => {
+    showStatus('✅ تم الحفظ بنجاح! جاري التحديث...', 'success');
+    autoPlayAttempted = false; // Reset so new music autoplays
+    applyData(data);
+    setTimeout(() => { 
+      closeAdmin(); 
+      showStatus('','');
+    }, 1500);
+  }).catch(err => {
+    showStatus('❌ فشل الحفظ: ' + err.message, 'error');
+  });
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status-msg ' + (type || '');
+}
+
+// ===== Particles =====
+function createParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (Math.random() * 8 + 6) + 's';
+    p.style.animationDelay = (Math.random() * 10) + 's';
+    p.style.width = p.style.height = (Math.random() * 6 + 2) + 'px';
+    container.appendChild(p);
+  }
+}
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+  createParticles();
+  loadData();
+});
+</script>
+
+</body>
+</html>
